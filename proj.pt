@@ -1,2 +1,5 @@
-<input syntax="proj.code" from="" to=input/>
-<eval print "parsing successful."/>
+
+<parameter infile message="input file name"/>
+<input from=(infile) syntax="Cfront.code" to = ast />
+
+<output from=(ast) syntax ="Cfront.code" />
