@@ -1,0 +1,104 @@
+
+<parameter infile message="input file name"/>
+
+<*============ reading the input code =================*>
+<* parse the in file using syntax defined in our code file, will output to ast *>
+<input from=(infile) syntax="Cfront.code" to = ast />
+
+<*============ control flow graph IR and management ===============*>
+
+<* define our nodes and edges, including our index *>
+<define cfg_nodes NULL/>
+<define cfg_edges NULL/>
+<define label_index 0/>
+
+<* function that will return a new label *>
+<xform new_label > GLOBAL.lab_index=GLOBAL.label_index+1; GLOBAL.label_index </xform>
+
+<* basic block IR data structure *>
+<code Flow pars=(from, to)>
+B@from@->B@to@
+</code>
+
+<code DFG pars=(nodes, edges)>
+digraph CFG
+{
+	@CODE.print_list#(nodes,"\n")@
+	@CODE.print_list#(edges,"\n")@
+}
+</code>
+
+<*print content backward *>
+<code print_lsit pars=(content,sep)>
+@((TAIL(content) : NULL)? HEAD(content) :
+	(print_list#(TAIL(content),sep) sep HEAD(content)))@
+</code>
+
+<* generating a new basic block function *>
+<xform new_basicblock pars=(stmts)>
+	label = GLOBAL.label_index;
+	GLOBAL.cfg_nodes = BasicBlock#(label, stmts) :: GLOBAL.cfg_nodes;
+	GLOBAL.label_index = GLOBAL.label_index + 1;
+	label
+</xform>
+
+<* function to create a new edge *>
+<xform new_flow pars=(from, to)>
+	GLOBAL.cfg_edges = Flow#(from, to) :: GLOBAL.cfg_edges;
+</xform>
+
+<***** translation schemes for control flow graph construction ****>
+<* this looks like the place where we'll have to edit it specifically for our code *>
+<xform BuildCFG__Goal pars(input, begin)>
+	<*this is our start non-term*>
+	CODE.DeclarationBlock#(block) = input;
+	for (p = block; p!= NULL p = TAIL(p)) {
+	   	cur = HEAD(p);
+		<* going based on her tutorial, we want all productions of our *>
+		<* non-terminal DeclarationBlock *>
+		switch(cur) {
+			<*we have very few productions for DeclarationBlock fyi*>
+			<* pretty sure we need builders for all of these *>
+			case GLOBAL.Declaration : begin = cur :: begin;
+			case CODE.EmptyStmt : begin = cur :: begin;
+			case CODE.DeclStmt : begin = cur :: begin;
+		}
+	   
+	}
+</xform>
+
+
+<* we need implementation schemes for our three non-terminals *>
+<* Main issue I don't understand: *>
+<* I feel like i need to use these to somehow access the other potential*>
+<* block beginnings, but looking at the parsing, I don't see how any of *>
+<* these will ever get to for, while, do while, if-else, etc, that would*>
+<* need to be the beginning of a block 					*>
+
+
+<xform BuildCFG__GlobalDeclStmt pars=(input, begin)>
+	
+	
+</xform>
+
+
+<xform BuildCFG_EmptyStmt pars=(input, begin)>
+	<*I don't think we need anything in here since it is just empty*>
+</xform>
+
+
+<xform BuildCFG_DeclStmt pars=(input, begin)>
+	
+</xform>
+
+
+
+
+
+
+
+<* needs to remain at end of file I think*>
+<*<output from=(ast) syntax ="Cfront.code" />*>
+
+<* write to given output file *>
+<output from=(CFG#(cfg_nodes, cfg_edges)) sntax="myattempt.code" to=outfile />
