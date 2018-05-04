@@ -1,0 +1,75 @@
+
+<parameter infile message="input file name"/>
+<input from=(infile) syntax="Cfront.code" to = ast />
+
+<output from=(ast) syntax ="Cfront.code" />
+
+<define cfg_nodes NULL/>
+<define cfg_edges NULL/>
+<define label_index 0/>
+
+<xform new_label > GLOBAL.label_index=GLOBAL.label_index+1; GLOBAL.label_index  </xform>
+<code BasicBlock pars=(label,stmts)>
+B@label@[@CODE.print_list#(stmts,"")@]
+</code>
+
+<code Flow pars=(from,to)>
+B@from@->B@to@
+</code>
+
+<code CFG pars=(nodes,edges)>
+digraph CFG
+{
+@CODE.print_list#(nodes,"\n")@
+@CODE.print_list#(edges,"\n")@
+}
+</code>
+<code print_list pars=(content,sep)>
+@((TAIL(content):NULL)? HEAD(content):
+ (print_list#(TAIL(content),sep) sep HEAD(content)))@
+<\code>
+
+<xfrom new_basicblock pars=(stmts)>
+label = GLOBAL.label_index;
+GLOBAL.cfg_nodes = BasicBlock#(label,stmts) :: GLOBAL.cfg_nodes;
+label
+</xfrom>
+
+<xform new flow pars=(from,to)>
+GLOBAL.cfg_edges = FLOW#(from,to) :: GLOBAL.cfg_edges;
+</xform>
+
+<xfrom BuildCFG__Goal pars=(intput,begin)>
+ CODE.Goal#(block)= input;
+for(p = block; p != NULL; p = TAIL(p)){
+cur = HEAD(p);
+switch(cur){
+case CODE.For : begin = XFROM.BuildCFG__For(cur,begin);
+case CODE.Decl : begin = cur :: begin;
+case CODE.ExpStmt: begin=cur :: begin;
+}
+}
+begin
+</xform>
+
+</xform Build__For pars=(input,begin)>
+For#(var, lb,ub,incr,body) = input;
+b_init = new_basicblock(CODE.Bop#("=",var,lb)::begin);
+b_test = new_basicblock(Bop#("<",var,ub));
+body_label = GLOBAL.label_index;
+body_next = XFORM.BuildCFG__Goal(body,"");
+body_last = new_basicblock(incr::body_next);
+exit_label = new_label();
+
+new_flow(b_init,b_test);
+new_flow(b_test, body_label);
+new_flow(b_test, exit_label);
+new_flow(body_last,b_test);
+
+</xform>
+
+<eval last= BuildCFG__Goal(ast, "");
+new_basicblock("");
+/>
+<output from=(CFG#(cfg_nodes,cfg_edges)) syntax ="Cfront.code" to=outfile />
+

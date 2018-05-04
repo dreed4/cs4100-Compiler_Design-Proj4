@@ -3,7 +3,7 @@
 <*========== reading the input code ============*>
 <* parse the in File using syntax defined in file "compiler_input_4.code";
 save the parsing result (the abstract syntax tree) to ast variable *>
-<input from=(infile) syntax="Cfront.code" to=ast/>
+<input from=(infile) syntax="compiler_input_4.code" to=ast/>
 <*============== control flow graph IR and management =====*>
 <define cfg_nodes NULL/> <* resulting CFG nodes generated *>
 <define cfg_edges NULL/> <* resulting CFG edges generated *>
@@ -45,12 +45,12 @@ GLOBAL.cfg_edges = Flow#(from, to) :: GLOBAL.cfg_edges;
 <****translation schemes for control flow graph contruction **************>
 <* implement translation scheme for all productions of non-terminal Goal *>
 <xform BuildCFG__Goal pars=(input, begin)>
-CODE.DeclerationBlock#(block) = input;
+CODE.Goal#(block) = input;
 for (p = block; p != NULL; p = TAIL(p)) {
 cur = HEAD(p);
 switch (cur) {
-case CODE.FunctionDecl : begin = XFORM.BuildCFG__For(cur,begin);
-case CODE.EmptyStmt : begin = cur :: begin;
+case CODE.For : begin = XFORM.BuildCFG__For(cur,begin);
+case CODE.Decl : begin = cur :: begin;
 case CODE.ExpStmt: begin=cur :: begin;
 }
 }
