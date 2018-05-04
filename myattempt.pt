@@ -75,6 +75,22 @@ digraph CFG
 <* these will ever get to for, while, do while, if-else, etc, that would*>
 <* need to be the beginning of a block 					*>
 
+<xform BuildCFG__For pars=(input,begin)>
+For#(var,lb,ub,incr,body) = input;
+b_init = new_basicblock(CODE.Bop#("=",var,lb) :: begin); <* wrap up the previous basic block *>
+b_test = new_basicblock(Bop#("<",var,ub)); <* new basic block for test *>
+body_label= GLOBAL.label_index; <* label for the first basic block of body *>
+body_next = XFORM.BuildCFG__Goal(body,""); <* lable of the last basic block from loop body *>
+body_last = new_basicblock(incr::body_next); <* last basic block from loop body*>
+exit_label = new_label(); <* exit label for the loop*>
+<* new generate cfg edges *>
+new_flow(b_init, b_test);
+new_flow(b_test, body_label);
+new_flow(b_test, exit_label);
+new_flow(body_last, b_test);
+"" <* the exit block is currently empty*>
+</xform>
+
 
 <xform BuildCFG__GlobalDeclStmt pars=(input, begin)>
 	
@@ -91,9 +107,14 @@ digraph CFG
 	
 </xform>
 
-
-
-
+<* Associative map for traversing the CFG. Needs work. *>
+<xform MapSuccessors pars=(cfg)>
+	res = MAP(,);
+	foreach edge = Flow#(CLEAR from, CLEAR to) \in cfg do
+		res[from] = BuildList(to, res[from]);
+	enddo
+	res
+</xform>
 
 
 
